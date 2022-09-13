@@ -1,4 +1,3 @@
 *.js.map
-.prettierrc
 .vscode
 node_modules
