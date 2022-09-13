@@ -3,7 +3,10 @@
 // @namespace    rym-visual-rating
 // @version      0.4
 // @description  Adds a simple horizontal and visual rating bar on releases pages.
-// @author       Kazaam
+// @author       ewauq
+// @updateURL    https://raw.githubusercontent.com/ewauq/userscripts/main/rym-visual-rating/src/script.user.js
+// @downloadURL  https://raw.githubusercontent.com/ewauq/userscripts/main/rym-visual-rating/src/script.user.js
+// @supportURL   https://github.com/ewauq/userscripts/issues
 // @match        https://rateyourmusic.com/release/*
 // @icon         https://www.google.com/s2/favicons?domain=rateyourmusic.com
 // ==/UserScript==
