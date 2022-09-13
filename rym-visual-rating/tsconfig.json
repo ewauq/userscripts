@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "rootDir": "src",
-    "target": "es5",
-    "module": "commonjs",
+    "module": "ES6",
+    "target": "ES6",
+    "lib": ["ES2020", "DOM"],
     "sourceMap": true,
     "newLine": "lf",
     "noImplicitAny": true
