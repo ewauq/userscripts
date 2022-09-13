@@ -2,7 +2,7 @@
 // @name         RateYourMusic - Visual Rating
 // @namespace    rym-visual-rating
 // @version      0.4
-// @description  Adds a simple horizontal and visual rating on releases pages.
+// @description  Adds a simple horizontal and visual rating bar on releases pages.
 // @author       Kazaam
 // @match        https://rateyourmusic.com/release/*
 // @icon         https://www.google.com/s2/favicons?domain=rateyourmusic.com
