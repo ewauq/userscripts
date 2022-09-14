@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
     "rootDir": "src",
+    "outDir": "public",
     "module": "ES6",
     "target": "ES6",
+    "allowSyntheticDefaultImports": true,
     "lib": ["ES2020", "DOM"],
-    "sourceMap": true,
     "newLine": "lf",
     "noImplicitAny": true
+    // "strict": true
   }
 }
