@@ -1,3 +1,4 @@
+'use strict'
 // ==UserScript==
 // @name         RateYourMusic - Visual Rating Bar
 // @namespace    rym-visual-rating-bar
@@ -16,16 +17,63 @@ const Themes = {
   neon: ['#ff00d9', '#ffb400', '#96ff00', '#00ffc8', '#0082ff', '#b432ff'],
   colorBlind: ['#dc321e', '#ffb400', '#faff00', '#23fffa', '#28b4ff', '#2850ff'],
 }
+class OptionsMenu {
+  build() {
+    document.body.style.overflow = 'hidden'
+    const optionsMenuOverlay = document.createElement('div')
+    optionsMenuOverlay.style.width = '100%'
+    optionsMenuOverlay.style.height = '100%'
+    optionsMenuOverlay.style.zIndex = '1010'
+    optionsMenuOverlay.style.top = '0'
+    optionsMenuOverlay.style.left = '0'
+    optionsMenuOverlay.style.position = 'fixed'
+    optionsMenuOverlay.style.display = 'flex'
+    optionsMenuOverlay.style.justifyContent = 'center'
+    optionsMenuOverlay.style.fontFamily = 'Roboto, Helvetica, Arial, sans-serif'
+    optionsMenuOverlay.style.fontSize = '16px'
+    optionsMenuOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
+    const optionsMenuContainer = document.createElement('div')
+    optionsMenuContainer.style.width = '50%'
+    optionsMenuContainer.style.margin = 'auto'
+    optionsMenuContainer.style.padding = '20px'
+    optionsMenuContainer.style.zIndex = '1020'
+    optionsMenuContainer.style.backgroundColor = '#FFFFFF'
+    optionsMenuContainer.style.borderRadius = '6px'
+    optionsMenuContainer.style.outline = '6px solid rgba(0,0,0,0.3)'
+    const optionsMenuSectionTitle = document.createElement('h2')
+    optionsMenuSectionTitle.style.fontSize = '20px'
+    optionsMenuSectionTitle.style.fontWeight = 'bold'
+    optionsMenuSectionTitle.innerHTML = 'Options'
+    optionsMenuContainer.appendChild(optionsMenuSectionTitle)
+    const headerNode = document.getElementById('page_header')
+    const pageWrapper = document.getElementById('content_wrapper_outer')
+    if (headerNode) headerNode.style.filter = 'blur(3px)'
+    if (pageWrapper) pageWrapper.style.filter = 'blur(3px)'
+    optionsMenuOverlay.appendChild(optionsMenuContainer)
+    return optionsMenuOverlay
+  }
+}
 class VisualRatingBar {
   constructor(options) {
-    this.barOptions = {}
+    // Default values
+    this.barOptions = {
+      animation: true,
+      borderRadius: 6,
+      colors: 'vibrant',
+      themeMode: false,
+      height: 20,
+      shadow: true,
+      style: 'gradual',
+    }
     this.getBackgroundColor = () => {
       const elementNode = document.querySelector('.release_right_column')
+      if (!elementNode) throw new Error("Can't find the .release_right_column element")
       return window.getComputedStyle(elementNode).backgroundColor
     }
     this.getThemeMode = () => {
       const currentThemeMode = localStorage.getItem('theme')
-      if (!['eve', 'night', 'light'].includes(currentThemeMode)) return
+      if (!currentThemeMode) return null
+      if (!['eve', 'night', 'light'].includes(currentThemeMode)) return null
       return currentThemeMode
     }
     this.buildGradient = () => {
@@ -50,32 +98,44 @@ class VisualRatingBar {
       })
       return cssValues.join(', ')
     }
+    const { animation, borderRadius, colors, themeMode, height, shadow, style } = this.barOptions
     this.barOptions.animation =
-      (options === null || options === void 0 ? void 0 : options.animation) === undefined ||
-      (options === null || options === void 0 ? void 0 : options.animation)
+      (options === null || options === void 0 ? void 0 : options.animation) == undefined
+        ? animation
+        : options === null || options === void 0
+        ? void 0
+        : options.animation
     this.barOptions.borderRadius =
-      (options === null || options === void 0 ? void 0 : options.borderRadius) || 6
+      (options === null || options === void 0 ? void 0 : options.borderRadius) || borderRadius
     this.barOptions.colors =
-      (options === null || options === void 0 ? void 0 : options.colors) || 'vibrant'
-    this.barOptions.themeMode = this.getThemeMode() || false
+      (options === null || options === void 0 ? void 0 : options.colors) || colors
+    this.barOptions.themeMode = this.getThemeMode() || themeMode
     this.barOptions.height =
-      (options === null || options === void 0 ? void 0 : options.height) || 20
+      (options === null || options === void 0 ? void 0 : options.height) || height
     this.barOptions.shadow =
-      (options === null || options === void 0 ? void 0 : options.shadow) === undefined ||
-      (options === null || options === void 0 ? void 0 : options.shadow)
+      (options === null || options === void 0 ? void 0 : options.shadow) == undefined
+        ? shadow
+        : options === null || options === void 0
+        ? void 0
+        : options.shadow
     this.barOptions.style =
-      (options === null || options === void 0 ? void 0 : options.style) || 'gradual'
+      (options === null || options === void 0 ? void 0 : options.style) || style
   }
   init() {
+    var _a, _b, _c
     const ratingNode = document.querySelector('span.avg_rating')
     if (!ratingNode) return
-    const { animation, height, borderRadius, themeMode: mode, shadow } = this.barOptions
-    const rating = parseFloat(ratingNode.textContent.trim())
+    const { animation, height, borderRadius, themeMode, shadow } = this.barOptions
+    const ratingText =
+      ratingNode === null || ratingNode === void 0 ? void 0 : ratingNode.textContent
+    if (!ratingText) throw new Error("Can't retieve the rating text of element span.avg_rating")
+    const rating = parseFloat(ratingText.trim())
     const ratingPercentage = (rating * 100) / 5
     // Bar wrapper
     const barWrapper = document.createElement('div')
     barWrapper.id = 'userscript-bar-wrapper'
     barWrapper.style.height = `${height}px`
+    barWrapper.style.cursor = 'pointer'
     barWrapper.style.position = 'relative'
     barWrapper.style.marginTop = '6px'
     barWrapper.title = `${rating}/5 (${ratingPercentage}%)`
@@ -97,10 +157,16 @@ class VisualRatingBar {
     barGradient.style.height = '100%'
     barGradient.style.background = `linear-gradient(90deg, ${this.buildGradient()})`
     if (borderRadius) barGradient.style.borderRadius = `${borderRadius}px`
-    if (mode !== 'light') barGradient.style.filter = 'saturate(50%)'
+    if (themeMode !== 'light') barGradient.style.filter = 'saturate(50%)'
     if (shadow) barGradient.style.boxShadow = '#0000009c 0px 0px 4px 0px inset'
-    const ratingNodeParent = ratingNode.parentNode.parentNode
-    ratingNodeParent.appendChild(barWrapper)
+    const ratingNodeParent =
+      (_a = ratingNode === null || ratingNode === void 0 ? void 0 : ratingNode.parentNode) ===
+        null || _a === void 0
+        ? void 0
+        : _a.parentNode
+    ratingNodeParent === null || ratingNodeParent === void 0
+      ? void 0
+      : ratingNodeParent.appendChild(barWrapper)
     barWrapper.appendChild(barGradient)
     barWrapper.appendChild(barMask)
     // Bar animation
@@ -112,11 +178,21 @@ class VisualRatingBar {
       }
     }, 50)
     // Handling RYM theme mode switching
-    document.querySelectorAll('div.header_theme_button')[1].addEventListener('click', () => {
-      const themeMode = this.getThemeMode()
-      barMask.style.backgroundColor = this.getBackgroundColor()
-      barGradient.style.filter = `saturate(${themeMode === 'light' ? 100 : 50}%)`
-    })
+    ;(_b = document.querySelectorAll('div.header_theme_button')[1]) === null || _b === void 0
+      ? void 0
+      : _b.addEventListener('click', () => {
+          const themeMode = this.getThemeMode()
+          barMask.style.backgroundColor = this.getBackgroundColor()
+          barGradient.style.filter = `saturate(${themeMode === 'light' ? 100 : 50}%)`
+        })
+    // Options menu
+    ;(_c = document.getElementById('userscript-bar-wrapper')) === null || _c === void 0
+      ? void 0
+      : _c.addEventListener('click', () => {
+          alert('hello ici!!!')
+        })
+    const optionsMenu = new OptionsMenu()
+    document.body.appendChild(optionsMenu.build())
     console.log('[USERSCRIPT] RateYourMusic Visual Rating Bar added')
   }
 }

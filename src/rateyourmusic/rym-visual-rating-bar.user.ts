@@ -11,9 +11,18 @@
 // @icon         https://www.google.com/s2/favicons?domain=rateyourmusic.com
 // ==/UserScript==
 
-import type { BarOptions } from 'type/BarOptions'
-import type { RGBColor } from 'type/RGBColor'
-import type { ThemeColors } from 'type/ThemeColors'
+type BarOptions = {
+  animation: boolean
+  borderRadius: number | false
+  colors: 'vibrant' | 'rainbow' | 'neon' | 'colorBlind'
+  themeMode: string | false
+  height: number
+  shadow: boolean
+  style: 'blend' | 'gradual'
+}
+
+type RGBColor = `rgb(${number}, ${number}, ${number})`
+type ThemeColors = { [themeName: string]: `#${string}`[] }
 
 const Themes: ThemeColors = {
   vibrant: ['#fa4146', '#fa961e', '#fac850', '#91be6e', '#55a569', '#4182a5'],
@@ -22,27 +31,85 @@ const Themes: ThemeColors = {
   colorBlind: ['#dc321e', '#ffb400', '#faff00', '#23fffa', '#28b4ff', '#2850ff'],
 }
 
+class OptionsMenu {
+  build(): HTMLDivElement {
+    document.body.style.overflow = 'hidden'
+
+    const optionsMenuOverlay = document.createElement('div')
+    optionsMenuOverlay.style.width = '100%'
+    optionsMenuOverlay.style.height = '100%'
+    optionsMenuOverlay.style.zIndex = '1010'
+    optionsMenuOverlay.style.top = '0'
+    optionsMenuOverlay.style.left = '0'
+    optionsMenuOverlay.style.position = 'fixed'
+    optionsMenuOverlay.style.display = 'flex'
+    optionsMenuOverlay.style.justifyContent = 'center'
+    optionsMenuOverlay.style.fontFamily = 'Roboto, Helvetica, Arial, sans-serif'
+    optionsMenuOverlay.style.fontSize = '16px'
+    optionsMenuOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
+
+    const optionsMenuContainer = document.createElement('div')
+    optionsMenuContainer.style.width = '50%'
+    optionsMenuContainer.style.margin = 'auto'
+    optionsMenuContainer.style.padding = '20px'
+    optionsMenuContainer.style.zIndex = '1020'
+    optionsMenuContainer.style.backgroundColor = '#FFFFFF'
+    optionsMenuContainer.style.borderRadius = '6px'
+    optionsMenuContainer.style.outline = '6px solid rgba(0,0,0,0.3)'
+
+    const optionsMenuSectionTitle = document.createElement('h2')
+    optionsMenuSectionTitle.style.fontSize = '20px'
+    optionsMenuSectionTitle.style.fontWeight = 'bold'
+    optionsMenuSectionTitle.innerHTML = 'Options'
+
+    optionsMenuContainer.appendChild(optionsMenuSectionTitle)
+
+    const headerNode = document.getElementById('page_header')
+    const pageWrapper = document.getElementById('content_wrapper_outer')
+
+    if (headerNode) headerNode.style.filter = 'blur(3px)'
+    if (pageWrapper) pageWrapper.style.filter = 'blur(3px)'
+
+    optionsMenuOverlay.appendChild(optionsMenuContainer)
+
+    return optionsMenuOverlay
+  }
+}
+
 class VisualRatingBar {
-  barOptions: BarOptions = {}
+  // Default values
+  barOptions: BarOptions = {
+    animation: true,
+    borderRadius: 6,
+    colors: 'vibrant',
+    themeMode: false,
+    height: 20,
+    shadow: true,
+    style: 'gradual',
+  }
 
   constructor(options?: BarOptions) {
-    this.barOptions.animation = options?.animation === undefined || options?.animation
-    this.barOptions.borderRadius = options?.borderRadius || 6
-    this.barOptions.colors = options?.colors || 'vibrant'
-    this.barOptions.themeMode = this.getThemeMode() || false
-    this.barOptions.height = options?.height || 20
-    this.barOptions.shadow = options?.shadow === undefined || options?.shadow
-    this.barOptions.style = options?.style || 'gradual'
+    const { animation, borderRadius, colors, themeMode, height, shadow, style } = this.barOptions
+
+    this.barOptions.animation = options?.animation == undefined ? animation : options?.animation
+    this.barOptions.borderRadius = options?.borderRadius || borderRadius
+    this.barOptions.colors = options?.colors || colors
+    this.barOptions.themeMode = this.getThemeMode() || themeMode
+    this.barOptions.height = options?.height || height
+    this.barOptions.shadow = options?.shadow == undefined ? shadow : options?.shadow
+    this.barOptions.style = options?.style || style
   }
 
   getBackgroundColor = (): RGBColor => {
     const elementNode: Element | null = document.querySelector('.release_right_column')
+    if (!elementNode) throw new Error("Can't find the .release_right_column element")
     return window.getComputedStyle(elementNode).backgroundColor as RGBColor
   }
 
   getThemeMode = (): string | null => {
     const currentThemeMode = localStorage.getItem('theme')
-    if (!['eve', 'night', 'light'].includes(currentThemeMode)) return
+    if (!currentThemeMode) return null
+    if (!['eve', 'night', 'light'].includes(currentThemeMode)) return null
     return currentThemeMode
   }
 
@@ -77,18 +144,23 @@ class VisualRatingBar {
   }
 
   init(): void {
-    const ratingNode: Element = document.querySelector('span.avg_rating')
+    const ratingNode = document.querySelector('span.avg_rating')
     if (!ratingNode) return
 
-    const { animation, height, borderRadius, themeMode: mode, shadow } = this.barOptions
+    const { animation, height, borderRadius, themeMode, shadow } = this.barOptions
 
-    const rating = parseFloat(ratingNode.textContent.trim())
+    const ratingText = ratingNode?.textContent
+
+    if (!ratingText) throw new Error("Can't retieve the rating text of element span.avg_rating")
+
+    const rating = parseFloat(ratingText.trim())
     const ratingPercentage = (rating * 100) / 5
 
     // Bar wrapper
     const barWrapper: HTMLDivElement = document.createElement('div')
     barWrapper.id = 'userscript-bar-wrapper'
     barWrapper.style.height = `${height}px`
+    barWrapper.style.cursor = 'pointer'
     barWrapper.style.position = 'relative'
     barWrapper.style.marginTop = '6px'
     barWrapper.title = `${rating}/5 (${ratingPercentage}%)`
@@ -112,11 +184,11 @@ class VisualRatingBar {
     barGradient.style.height = '100%'
     barGradient.style.background = `linear-gradient(90deg, ${this.buildGradient()})`
     if (borderRadius) barGradient.style.borderRadius = `${borderRadius}px`
-    if (mode !== 'light') barGradient.style.filter = 'saturate(50%)'
+    if (themeMode !== 'light') barGradient.style.filter = 'saturate(50%)'
     if (shadow) barGradient.style.boxShadow = '#0000009c 0px 0px 4px 0px inset'
 
-    const ratingNodeParent = ratingNode.parentNode.parentNode
-    ratingNodeParent.appendChild(barWrapper)
+    const ratingNodeParent = ratingNode?.parentNode?.parentNode
+    ratingNodeParent?.appendChild(barWrapper)
     barWrapper.appendChild(barGradient)
     barWrapper.appendChild(barMask)
 
@@ -130,11 +202,19 @@ class VisualRatingBar {
     }, 50)
 
     // Handling RYM theme mode switching
-    document.querySelectorAll('div.header_theme_button')[1].addEventListener('click', () => {
+    document.querySelectorAll('div.header_theme_button')[1]?.addEventListener('click', () => {
       const themeMode = this.getThemeMode()
       barMask.style.backgroundColor = this.getBackgroundColor()
       barGradient.style.filter = `saturate(${themeMode === 'light' ? 100 : 50}%)`
     })
+
+    // Options menu
+    document.getElementById('userscript-bar-wrapper')?.addEventListener('click', () => {
+      alert('hello ici!!!')
+    })
+
+    const optionsMenu = new OptionsMenu()
+    document.body.appendChild(optionsMenu.build())
 
     console.log('[USERSCRIPT] RateYourMusic Visual Rating Bar added')
   }
