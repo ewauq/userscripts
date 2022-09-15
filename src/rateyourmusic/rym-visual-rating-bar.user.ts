@@ -213,8 +213,8 @@ class VisualRatingBar {
       alert('hello ici!!!')
     })
 
-    const optionsMenu = new OptionsMenu()
-    document.body.appendChild(optionsMenu.build())
+    // const optionsMenu = new OptionsMenu()
+    // document.body.appendChild(optionsMenu.build())
 
     console.log('[USERSCRIPT] RateYourMusic Visual Rating Bar added')
   }
